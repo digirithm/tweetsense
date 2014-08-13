@@ -20,5 +20,22 @@
     height: 400px;
 }
 
-body { background-color: black; color: white;}
+
+body {
+  font: 14px Helvetica Neue;
+  text-rendering: optimizeLegibility;
+  margin-top: 1em;
+  overflow-y: scroll;
+  background-color: black; 
+  color: white;
+
+  width: 960px;
+  margin: auto;
+}
+.panel { color: black;}
+.jumbotron{ color: black;}
+#home-lifestlye { background-color: black;}
 #home-lifestyle h1 { font-size: 1000%; color: white; text-shadow: 2px 2px gray;}
+
+.well { background-color: grey; color: black;}
+input { color: black;}

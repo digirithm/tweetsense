@@ -40,6 +40,8 @@
 	<!--[if lt IE 9]>
 		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
 	<![endif]-->
+	<script src="http://d3js.org/d3.v2.js"></script>
+
 </head>
 
 <body class="ng-cloak">
@@ -50,11 +52,12 @@
 		</section>
 	</section>
 
+
+
 	<!--Embedding The User Object-->
 	<script type="text/javascript">
 		var user = {{ user | json | safe }};
 	</script>
-
 
 	<!--Application JavaScript Files-->
 	{% for jsFile in jsFiles %}<script type="text/javascript" src="{{jsFile}}"></script>

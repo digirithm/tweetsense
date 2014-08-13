@@ -1,4 +1,24 @@
-<h1>D3 interface examples</h1>
+<div class="panel panel-default" ng-controller="D3ExamplesController">
+  <div class="panel-body">
+    <h1>Github Commit Graph Powered by Angular Directive wrapping D3</h1>
+    <p> This is a very basic example of getting angular / d3 to talk to an external service while seperating concerns and improving reusability with the use of an Anglar Directive.
+    <form ng-submit="getCommitData()">
+    User: <input ng-model="user"></input>
+    Repo: <input ng-model="repo"></input>
+    <input type="submit" value="Get Data" class="btn btn-info">
+    Grouped <input type="checkbox" ng-model="grouped">
+    </form>
+
+    <p class="error">{{error}}</p>
+    <gh-visualization val="data" grouped="grouped"></gh-visualization>
+
+  </div>
+</div>
+
+<div class="panel panel-default">
+  <div class="panel-body">
+        <h1>D3 interface examples</h1>
+        <p>Small selection of D3 examples which could be consumed soon.  Good for discussion and reference.</p>
 <a href="http://mbostock.github.io/d3/talk/20111116/airports.html">Airports</a><br>
 <A href="http://mbostock.github.io/d3/talk/20111116/pack-hierarchy.html">Circle Pack</a><br>
 <a href="http://bl.ocks.org/mbostock/4060606">Choropleth</a><br>
@@ -8,6 +28,5 @@
 <a href="http://square.github.io/crossfilter/">CrossFilter</a><br>
 <a href="http://www.cs.umd.edu/~bederson/papers/index.html">Complex reporting</a><br>
 <A href="http://kenlin.com/x/aws-price-comparison-chart/">Price Comparison</a><br><br>
-
-
-
+  </div>
+</div>

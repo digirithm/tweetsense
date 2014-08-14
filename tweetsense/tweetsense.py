@@ -63,8 +63,6 @@ TODO: In no particular order,
 
       Suggestion creation and manipulation.
 
-      User, authentication, admin, and account handling.
-
       Boosting functionality (crowd sources ML logic to a bunch of specialized weak learners to
       increase accuracy without overfitting).
 
@@ -79,7 +77,7 @@ TODO: In no particular order,
 
 from collections import namedtuple
 import random
-import pymongo
+from pymongo import MongoClient
 import asyncio
 from TextBlob import TextBlob
 from TextBlob.classifiers import NaiveBayesClassifier
@@ -96,7 +94,7 @@ DL_LOOP = asyncio.BaseEventLoop()  # download tweets
 DB_LOOP = asyncio.BaseEventLoop()  # persist in data store
 
 # handles mongo connection
-MONGO = pymongo.connection()
+MONGO = MongoClient()
 
 # Spotlight and Discovery functionality are under construction. The idea is to address
 # the search/retrieval dilemma through a common framework, while maximizing insight
@@ -120,11 +118,11 @@ class Discovery:
 
 
 class TwitterUser:
-    db_prefix = 'twitter_user_'
+    db_prefix = 'twitter_user'
+    db = MONGO[db_prefix]
 
     def __init__(self, handle):
         self.handle = handle
-        self.db = MONGO[self.db_prefix + handle]
 
     @asyncio.coroutine
     def tweets(self, **filters):
@@ -144,11 +142,11 @@ class Demographic(set):
     spec = Specs(gender='female', age=range(13,30), keywords=('nintendo', 'game', 'xbox', 'play'))
     demo = Demographic('gamer_chicks', specs=spec)
     """
-    db_prefix = 'demographic_'
+    db_prefix = 'demographic'
+    db = MONGO[db_prefix]
 
     def __init__(self, name, specs=None, users=None):
         super().__init__(self, self.build_from_specification(specs) if specs else users)
-        self.db = MONGO[self.db_prefix + name]
         self.name = name
 
     def poll(self, question, qualifiers=None, weighted=False):
@@ -216,22 +214,19 @@ class Classifier(int):
     """
     Wrapper class for integer labeled classifiers, for use in TextBlob or scikit-learn
     """
-    db_prefix = 'classifier_'
+    db_prefix = 'classifier'
+    db = MONGO[db_prefix]
 
     def __new__(cls, label, exemplars, cls=None):
         instance = super().__new__(hash(label))
         self.label = label
         self.logic = (cls or NaiveBayesClassifier)(exemplars)
-        self.db = MONGO[cls.db_prefix + str(instance)]
 
     @staticmethod
     def not_implemented(*args, **kwargs):
         raise NotImplementedError
 
-    __add__ = __sub__ = __mul__ = __div__ = not_implemented
-
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError
+    __call__ = __add__ = __sub__ = __mul__ = __div__ = not_implemented
 
     def analyze(self, *args, **kwargs):
         return self.logic(*args, **kwargs)
@@ -244,7 +239,8 @@ class Classifier(int):
 
 
 class Question(Classifier):
-    db_prefix = 'question_'
+    db_prefix = 'question'
+    db = MONGO[db_prefix]
 
     def __call__(self, user, qualifiers=None):
         return self.analyze(user.load_tweets())

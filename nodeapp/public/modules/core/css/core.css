@@ -49,7 +49,7 @@ input { color: black;}
  
 .states {
   fill: none;
-  stroke: #fff;
+  stroke: #f00;
   stroke-linejoin: round;
 }
  

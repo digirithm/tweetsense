@@ -8,6 +8,10 @@ angular.module('core').config(['$stateProvider', '$urlRouterProvider',
 
 		// Home state routing
 		$stateProvider.
+		state('socketio', {
+			url: '/socketio',
+			templateUrl: 'modules/core/views/socketio.client.view.html'
+		}).
 		state('meanjs', {
 			url: '/meanjs',
 			templateUrl: 'modules/core/views/meanjs.client.view.html'

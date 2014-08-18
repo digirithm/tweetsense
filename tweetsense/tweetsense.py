@@ -122,16 +122,18 @@ class TwitterUser(int):
     db_prefix = 'twitter_user'
     db = MONGO[db_prefix]
 
-    def __init__(self, handle):
-        self.handle = handle
+    def __new__(cls, handle):
+        instance = super().__new__(hash(handle))
+        instance.handle = handle
+        return instance
 
     def to_json(self):
         pass
 
     def dump(self):
-        json = self.to_json()
-        self.db.insert()
+        self.db.insert(self.to_json())
 
+    @asyncio.coroutine
     def _save(self):
         asyncio.Task(self.dump, self.db, loop=DB_LOOP)
 
@@ -139,10 +141,6 @@ class TwitterUser(int):
     def tweets(self, **filters):
         response, content = request.get(GET_TWEET_URL % self.handle, parameters=filters)
         yield from iter((content,))
-
-    @asyncio.coroutine
-    def dump(self, db):
-        pass
 
     def load_tweets(self):
         pass
@@ -234,6 +232,7 @@ class Demographic(frozenset):
     def dump(self):
         pass
 
+    @asyncio.coroutine
     def _save(self):
         asyncio.Task(self.dump, self.db, loop=DB_LOOP)
 
@@ -274,7 +273,7 @@ class Classifier(int):
 
     def dump(self):
         pass
-
+    @asyncio.coroutine
     def _save(self):
         asyncio.Task(self.dump, self.db, loop=DB_LOOP)
 
@@ -300,6 +299,7 @@ class Question(Classifier):
     def dump(self):
         pass
 
+    @asyncio.coroutine
     def _save(self):
         asyncio.Task(self.dump, self.db, loop=DB_LOOP)
 

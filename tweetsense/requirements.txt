@@ -4,3 +4,4 @@ textblob
 requests
 pymongo
 scikit-learn
+flask

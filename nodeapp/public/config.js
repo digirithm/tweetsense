@@ -6,6 +6,21 @@ var ApplicationConfiguration = (function() {
 	var applicationModuleName = 'mean';
 	var applicationModuleVendorDependencies = ['ngResource', 'ngCookies',  'ngAnimate',  'ngTouch',  'ngSanitize',  'ui.router', 'ui.bootstrap', 'ui.utils'];
 
+angular.module('myApp', [
+  
+]).
+factory('socket', function (socketFactory) {
+  return socketFactory({
+    prefix: 'foo~',
+    ioSocket: io.connect('/some/path')
+  });
+}).
+controller('MyCtrl', function (socket) {
+  socket.on('foo~bar', function () {
+    $scope.bar = true;
+  });
+});
+
 	// Add a new vertical module
 	var registerModule = function(moduleName, dependencies) {
 		// Create angular module

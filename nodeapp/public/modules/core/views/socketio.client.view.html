@@ -1,0 +1,4 @@
+<section data-ng-controller="SocketioController" class="well">
+    <a ng-click="sendSocket()">Send Message</a> | <a ng-click="pingSocket()">Ping</a>
+    <div  ng-repeat="message in messages">{{ message }}</div>
+</section>

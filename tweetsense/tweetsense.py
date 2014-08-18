@@ -96,6 +96,7 @@ DB_LOOP = asyncio.BaseEventLoop()  # persist in data store
 # handles mongo connection
 MONGO = MongoClient()
 
+
 # Spotlight and Discovery functionality are under construction. The idea is to address
 # the search/retrieval dilemma through a common framework, while maximizing insight
 # and minimizing suprise.
@@ -117,12 +118,22 @@ class Discovery:
     pass
 
 
-class TwitterUser:
+class TwitterUser(int):
     db_prefix = 'twitter_user'
     db = MONGO[db_prefix]
 
     def __init__(self, handle):
         self.handle = handle
+
+    def to_json(self):
+        pass
+
+    def dump(self):
+        json = self.to_json()
+        self.db.insert()
+
+    def _save(self):
+        asyncio.Task(self.dump, self.db, loop=DB_LOOP)
 
     @asyncio.coroutine
     def tweets(self, **filters):
@@ -136,8 +147,15 @@ class TwitterUser:
     def load_tweets(self):
         pass
 
+    def __setstate__(self, state):
+        pass
 
-class Demographic(set):
+    def __getstate__(self):
+        self.db.insert({'label': label, 'exemplars': exemplars})
+
+
+
+class Demographic(frozenset):
     """
     spec = Specs(gender='female', age=range(13,30), keywords=('nintendo', 'game', 'xbox', 'play'))
     demo = Demographic('gamer_chicks', specs=spec)
@@ -145,9 +163,10 @@ class Demographic(set):
     db_prefix = 'demographic'
     db = MONGO[db_prefix]
 
-    def __init__(self, name, specs=None, users=None):
-        super().__init__(self, self.build_from_specification(specs) if specs else users)
-        self.name = name
+    def __new__(cls, name, specs=None, users=None):
+        instance = super().__new__(cls.build_from_specification(specs) if specs else users)
+        instance.name = name
+        return instance
 
     def poll(self, question, qualifiers=None, weighted=False):
         """
@@ -209,6 +228,24 @@ class Demographic(set):
         new.update(demo)
         return new
 
+    def to_json(self):
+        pass
+
+    def dump(self):
+        pass
+
+    def _save(self):
+        asyncio.Task(self.dump, self.db, loop=DB_LOOP)
+
+    def __setstate__(self, state):
+        pass
+
+    def __getstate__(self):
+        state = {'_id': self}
+        self.db.insert(state)
+        return state
+
+
 
 class Classifier(int):
     """
@@ -219,8 +256,9 @@ class Classifier(int):
 
     def __new__(cls, label, exemplars, cls=None):
         instance = super().__new__(hash(label))
-        self.label = label
-        self.logic = (cls or NaiveBayesClassifier)(exemplars)
+        instance.label = label
+        instance.logic = (cls or NaiveBayesClassifier)(exemplars)
+        return instance
 
     @staticmethod
     def not_implemented(*args, **kwargs):
@@ -231,11 +269,22 @@ class Classifier(int):
     def analyze(self, *args, **kwargs):
         return self.logic(*args, **kwargs)
 
-    def __setstate__(self, *args, **kwargs):
+    def to_json(self):
         pass
 
-    def __getstate__(self, *args, **kwargs):
+    def dump(self):
         pass
+
+    def _save(self):
+        asyncio.Task(self.dump, self.db, loop=DB_LOOP)
+
+    def __setstate__(self, state):
+        pass
+
+    def __getstate__(self):
+        state = {'_id': self, 'label': label, 'exemplars': exemplars}
+        self.db.insert(state)
+        return state
 
 
 class Question(Classifier):
@@ -244,6 +293,22 @@ class Question(Classifier):
 
     def __call__(self, user, qualifiers=None):
         return self.analyze(user.load_tweets())
+
+    def to_json(self):
+        pass
+
+    def dump(self):
+        pass
+
+    def _save(self):
+        asyncio.Task(self.dump, self.db, loop=DB_LOOP)
+
+    def __setstate__(self, state):
+        pass
+
+    def __getstate__(self):
+        self.db.insert({'label': label, 'exemplars': exemplars})
+
 
 
 class Trend:

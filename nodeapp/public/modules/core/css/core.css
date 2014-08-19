@@ -42,6 +42,8 @@ body {
 #home-container .panel-body { height: 200px;}
 #home-container .panel-title {  font-size: 25px; }
 #home-container .fa { font-size: 100px; padding: 10px;}
+#home-container a { font-size: 20px; text-decoration: underline;}
+
 .well { background-color: grey; color: black;}
 input { color: black;}
 
@@ -51,5 +53,6 @@ input { color: black;}
 
 a, a:link, a:visited { 
   color: white !important;
-  text-decoration: underline;
 }
+
+.modal-content { color: gray;}

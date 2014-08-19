@@ -1,7 +1,43 @@
 'use strict';
 
-angular.module('tweetsense').controller('tsCtrl', ['$scope',
-    function($scope) {
+angular.module('tweetsense').controller('tsCtrl', ['$scope', '$modal',
+    function($scope, $modal) {
+
+    $scope.openDemographics = function (size) {
+
+        var modalInstance = $modal.open({
+          templateUrl: '/modules/tweetsense/views/demographics.client.view.html',
+          controller: 'DemographicsController',
+          
+        });
+    };
+
+    $scope.openPolls = function (size) {
+
+        var modalInstance = $modal.open({
+          templateUrl: '/modules/tweetsense/views/polls.client.view.html',
+          controller: 'PollsController',
+        });
+    };
+
+    $scope.openTrends = function (size) {
+
+        var modalInstance = $modal.open({
+          templateUrl: '/modules/tweetsense/views/trends.client.view.html',
+          controller: 'TrendsController',
+          
+        });
+    };
+
+    $scope.openSuggestions = function (size) {
+
+        var modalInstance = $modal.open({
+          templateUrl: '/modules/tweetsense/views/suggestions.client.view.html',
+          controller: 'SuggestionsController',
+          
+        });
+    };
+
     // spacelabs stuff
         var app = function() {
 
@@ -97,8 +133,7 @@ angular.module('tweetsense').controller('tsCtrl', ['$scope',
             app.init();
   
     }
-])
-.controller('tsChoropleth', ['$scope',
+]).controller('tsChoropleth', ['$scope',
 	function($scope) {
     		
         var width = 960,
@@ -123,7 +158,7 @@ angular.module('tweetsense').controller('tsCtrl', ['$scope',
 
         queue()
             .defer(d3.json, "/testdata/us.json")
-            .defer(d3.tsv, "/testdata/unemployment.tsv", function(d) { rateById.set(d.id, +d.rate); })
+            .defer(d3.tsv, "/testdata/unemployment.tsv", function(d) { console.log(d); rateById.set(d.id, +d.rate); })
             .await(ready);
 
         function ready(error, us) {

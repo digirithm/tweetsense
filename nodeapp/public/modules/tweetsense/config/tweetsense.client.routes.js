@@ -6,7 +6,7 @@ angular.module('tweetsense').config(['$stateProvider',
 		// Tweetsense state routing
 		$stateProvider.
 		state('main', {
-			url: '/main',
+			url: '/tweetsense',
 			templateUrl: 'modules/tweetsense/views/main.client.view.html'
 		});
 	}

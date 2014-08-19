@@ -8,7 +8,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
 	<!-- Semantic META -->
 	<meta name="keywords" content="{{keywords}}">
@@ -32,6 +32,9 @@
 	<!-- Fav Icon -->
 	<link href="/modules/core/img/brand/favicon.ico" rel="shortcut icon" type="image/x-icon">
 
+	<link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,900,300italic,400italic,600italic,700italic,900italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+
 	<!--Application CSS Files-->
 	{% for cssFile in cssFiles %}<link rel="stylesheet" href="{{cssFile}}">
 	{% endfor %}
@@ -39,6 +42,7 @@
 	<!-- HTML5 Shim -->
 	<!--[if lt IE 9]>
 		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+		<script src="/spacelabs/assets/js/respond.min.js"></script>
 	<![endif]-->
 	
 	<script src="http://d3js.org/d3.v3.min.js"></script>
@@ -47,13 +51,11 @@
 
 </head>
 
-<body class="ng-cloak">
+<body class="ng-cloak animated fadeIn">
 	<header data-ng-include="'/modules/core/views/header.client.view.html'" class="navbar navbar-fixed-top navbar-inverse"></header>
-	<section class="content">
-		<section class="container">
+
 			{% block content %}{% endblock %}
-		</section>
-	</section>
+
 
 
 

@@ -19,23 +19,30 @@ import sys
 assert not sys.version.startswith('2'), 'Compatible with only python >= 3.*'
 
 # main imports
-import types
 import random
 import asyncio
-from collections import namedtuple
-from pymongo import MongoClient, ObjectId
-from TextBlob import TextBlob
-from TextBlob.classifiers import NaiveBayesClassifier
+import functools
+from collections import namedtuple, Hashable, Sequence
+import requests
+from pymongo import MongoClient
+from bson import ObjectId
+from textblob import TextBlob
+from textblob.classifiers import NaiveBayesClassifier
 
 # temporary wrapper
-Specs = namedtuple('age gender location keywords n_followers n_friends')
+Specs = namedtuple('Specifications', 'age gender location keywords n_followers n_friends')
 
 # Twitter API V-1.1 URLs, count set to max
 GET_USER_TWEETS_URL = 'https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=%s&count=3200'
+GET_USER_FRIENDS_URL = 'https://api.twitter.com/1.1/friends/ids.json?cursor=-1&screen_name=%s&count=5000'
+GET_USER_FOLLOWERS_URL = 'https://api.twitter.com/1.1/followers/ids.json?cursor=-1&screen_name=%s&count=5000'
+
+# various constants...
+TWITTER_API_LIMIT = None
 
 # event loop for pulling in tweets and persisting them server side
-DL_LOOP = asyncio.BaseEventLoop()  # download tweets
-DB_LOOP = asyncio.BaseEventLoop()  # persist in data store
+DL_LOOP = asyncio.get_event_loop()  # download tweets
+DB_LOOP = asyncio.get_event_loop()  # persist in data store
 
 # handles mongo connections
 MONGO_CLIENT = MongoClient()
@@ -56,7 +63,7 @@ class EnforceHashableMeta(type):
     Ensures the base class is hashable.
     """
     def __new__(meta, name, bases, attrs):
-        if len(bases) and not all(isinstance(b, types.Hashable) for b in bases):
+        if len(bases) and not all(isinstance(b, Hashable) for b in bases):
             raise InheritanceException('Can only use Persitable with hashable types')
         # intentionally not using `super`
         return type.__new__(meta, name, bases, attrs)
@@ -108,7 +115,7 @@ class Persistable(metaclass=EnforceHashableMeta):
             # up-delegate flow control
             yield from asyncio.sleep(0)
 
-        DB_LOOP.run_until_complete(dump)
+        DB_LOOP.run_forever(dump)
         return future.result
 
     @classmethod
@@ -129,7 +136,7 @@ class Persistable(metaclass=EnforceHashableMeta):
     @classmethod
     def save_objects(cls, obj):
         return obj.save() if not \
-               isinstance(obj, types.SequenceType) else [x.save() for x in obj]
+               isinstance(obj, Sequence) else [x.save() for x in obj]
 
     # For asynchronously accessing the multiprocessing API via `pickle`
 
@@ -142,9 +149,9 @@ class Persistable(metaclass=EnforceHashableMeta):
     # End multiprocessing
 
 
-def set_storage(db=db, name=name):
+def set_storage(db=None, name=None):
     def _wrap_cls(cls):
-        cls.storage = db[collection_name]
+        cls.storage = db[name]
         def _object_factory(*args, **kwargs):
             return cls(*args, **kwargs)
         return _object_factory
@@ -203,6 +210,15 @@ class TwitterUser(int, Persistable):
     def __new__(cls, handle):
         instance = int.__new__(cls, hash(handle))
         instance.handle = handle
+        # attach friends
+        response, content = requests.get(GET_USER_FRIENDS_URL % handle)
+        if response.status_code == 200:
+            instance.friends = content.json['ids']
+        # attach followers
+        response, content = requests.get(GET_USER_FOLLOWERS_URL % handle)
+        if response.status_code == 200:
+            instance.followers = content.json['ids']
+        # init the cache
         instance._tweet_cache = None
         return instance
 
@@ -212,12 +228,12 @@ class TwitterUser(int, Persistable):
 
         @asyncio.coroutine
         def do_get():
-            response, content = request.get(GET_USER_TWEETS_URL % self.handle)
+            response, content = requests.get(GET_USER_TWEETS_URL % self.handle)
             future.set_result((response, content))
             # up-delegate flow control
             yield from asyncio.sleep(0)
 
-        DL_LOOP.run_until_complete(do_get)
+        DL_LOOP.run_forever(do_get)
         r, c = future.result
         if r.status_code == 200:
             self._tweet_cache = tweets = c.json
@@ -290,7 +306,7 @@ class Demographic(frozenset, Persistable):
             normalizing_constant = float(sum(len(user.followers) for user in self))
             ask = lambda user: question(user, trend) * len(user.followers) / normalizing_constant
         # calculate the average
-        result = sum(ask(user) for user in self) / N)
+        result = sum(ask(user) for user in self) / N
         return Poll(question=question, trend=trend, result=result)
 
     def sync(self):
@@ -332,6 +348,10 @@ class Demographic(frozenset, Persistable):
                    users=(frozenset(user.friends) | frozenset(user.followers) for user in demo))
 
 
+class Poll(int, Persistable):
+    pass
+
+
 # Under Construction, Trends/Suggestions
 
 
@@ -355,7 +375,7 @@ class EnforceCallableHashedTypeMeta(EnforceHashableMeta):
     Ensures all hasbable subtypes are callable.
     """
     def __new__(meta, name, bases, attrs):
-        if len(bases) and not any('__call__' in b.__dict__ for b in bases):
+        if len(bases) and not ('__call__' in attrs):
             raise InheritanceException('Subtypes must declare themselves callable')
         # intentionally not using `super`
         return EnforceHashableMeta.__new__(meta, name, bases, attrs)
@@ -374,7 +394,7 @@ class Classifier(int, Persistable, metaclass=EnforceCallableHashedTypeMeta):
         return instance
 
     # don't do anything mathy with the classifiers to be on the safe side
-    __add__ = __sub__ = __mul__ = __div__ = not_implemented
+    __add__ = __sub__ = __mul__ = __div__ = __call__ = not_implemented
 
     def analyze(self, *args, **kwargs):
         # downward delegation

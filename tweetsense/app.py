@@ -5,7 +5,7 @@ app = Flask(__name__)
 # the kitchen sink...
 import time
 import json
-import types
+from collections import Sequence
 import functools
 from tweetsense import Persistable, TwitterUser, Demographic, Question, Poll, Trend
 
@@ -20,7 +20,7 @@ def serialize(handler):
     @functools.wraps(handler)
     def _wrap(*args, **kwargs):
         data = handler(*args, **kwargs)
-        if isinstance(data, types.SequenceType):
+        if isinstance(data, Sequence):
             return json.dumps([maybe(x) for x in data if x])
         elif not data:
             return ''

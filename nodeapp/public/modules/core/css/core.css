@@ -25,40 +25,34 @@ body {
   font: 14px Helvetica Neue;
   text-rendering: optimizeLegibility;
   margin-top: 1em;
-  overflow-y: scroll;
   background-color: black; 
   color: white;
-
-  width: 960px;
   margin: auto;
+}
+.navbar .container { 
+  width: 100%;
 }
 .panel { color: black;}
 .jumbotron{ color: black;}
 #home-lifestlye { background-color: black;}
 #home-lifestyle h1 { font-size: 1000%; color: white; text-shadow: 2px 2px gray;}
+#home-lifestyle h3 { font-size: 300%; color: white; text-shadow: 2px 2px gray;}
+
+#home-container .panel { box-shadow: 2px 2px gray;}
+#home-container .panel-body { height: 200px;}
+#home-container .panel-title {  font-size: 25px; }
+#home-container .fa { font-size: 100px; padding: 10px;}
+#home-container a { font-size: 20px; text-decoration: underline;}
 
 .well { background-color: grey; color: black;}
 input { color: black;}
 
-
-// d3
-
-.counties {
-  fill: none;
+#container { 
+  margin-top: 50px !important;
 }
- 
-.states {
-  fill: none;
-  stroke: #f00;
-  stroke-linejoin: round;
+
+a, a:link, a:visited { 
+  color: white !important;
 }
- 
-.q0-9 { fill:rgb(247,251,255); }
-.q1-9 { fill:rgb(222,235,247); }
-.q2-9 { fill:rgb(198,219,239); }
-.q3-9 { fill:rgb(158,202,225); }
-.q4-9 { fill:rgb(107,174,214); }
-.q5-9 { fill:rgb(66,146,198); }
-.q6-9 { fill:rgb(33,113,181); }
-.q7-9 { fill:rgb(8,81,156); }
-.q8-9 { fill:rgb(8,48,107); }
+
+.modal-content { color: gray;}

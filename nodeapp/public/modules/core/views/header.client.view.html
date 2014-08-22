@@ -23,7 +23,7 @@
 				<a ng-switch-default href="/#!/{{item.link}}" data-ng-bind="item.title"></a>
 			</li>
 		</ul>
-		<ul class="nav navbar-nav navbar-right" data-ng-hide="authentication.user">
+		<ul class="nav navbar-nav navbar-right" >
 			<li>
 				<a href="http://github.com/digirithm">GitHub</a>
 			</li>
@@ -38,16 +38,14 @@
 					<li><a href="/spacelabs/index.html">SpaceLabs</a></li>
 				</ul>
 			</li>
-			<li ui-route="/signup" ng-class="{active: $uiRoute}">
+			<li ui-route="/signup" ng-class="{active: $uiRoute}"data-ng-hide="authentication.user">
 				<a href="/#!/signup">Sign Up</a>
 			</li>
 			<li class="divider-vertical"></li>
-			<li ui-route="/signin" ng-class="{active: $uiRoute}">
+			<li ui-route="/signin" ng-class="{active: $uiRoute}"data-ng-hide="authentication.user">
 				<a href="/#!/signin">Sign In</a>
 			</li>
-		</ul>
-		<ul class="nav navbar-nav navbar-right" data-ng-show="authentication.user">
-			<li class="dropdown">
+			<li class="dropdown" data-ng-show="authentication.user">
 				<a href="#" class="dropdown-toggle" data-toggle="dropdown">
 					<span data-ng-bind="authentication.user.displayName"></span> <b class="caret"></b>
 				</a>

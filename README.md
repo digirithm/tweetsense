@@ -15,13 +15,12 @@ NOTE: Demographics are fundametally sets, and accordingly, somewhere there just 
       ...               age=range(13,30), keywords=('star trek', 'larping', 'comic books'))
       >>> gamer_girls_and_nerds = Demographic(specs=women) & Demographic(specs=nerds)
 
-      Any poll on gamer_girls_and_nerds will use the intersection of the gamer girls and nerds.
+      Any poll on gamer_girls_and_nerds will use the intersection of the gamer girls and the nerds.
       Trend handling is very powerful, for instance, to poll this hybrid demographic for changes
       in opinion regarding potentially engaging subject matter,
 
       >>> question = Question(label='Do you like Big Bang Theory?',
                               exemplars=[...scored training tweets...])
-      >>> trend = Trend.common.emerging_meme
       >>> is_popular = gamer_girls_and_nerds.poll(question=question,
                                                   trend=Trend.common.emerging_meme, weighted=True)
       >>> print(is_popular)

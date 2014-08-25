@@ -1,13 +1,45 @@
 'use strict';
 
-angular.module('tweetsense').controller('tsCtrl', ['$scope', '$modal',
-    function($scope, $modal) {
+angular.module('tweetsense').controller('tsCtrl', ['$scope', '$modal', 'Demographic', 'Question', 'Poll', 'Trend',
+    function($scope, $modal, Demographic, Question, Poll, Trend) {
+
+    $scope.counts = {
+        tweets: 0,  
+        questions: 0,
+        polls: 0,
+        trends: 0
+    };
+    
+    var demographics = Demographic.query( function(data) { 
+        $scope.counts.demographics = data.length;
+    });
+    
+    var polls = Poll.query( function(data) { 
+        $scope.counts.polls = data.length;
+    });
+    
+    var trends = Trend.query( function(data) { 
+        $scope.counts.trends = data.length;
+    });
+    
+
 
     $scope.openDemographics = function (size) {
 
         var modalInstance = $modal.open({
           templateUrl: '/modules/tweetsense/views/demographics.client.view.html',
           controller: 'DemographicsController',
+          size: 'lg'
+          
+        });
+    };
+
+    $scope.openDemographicsForm = function (size) {
+
+        var modalInstance = $modal.open({
+          templateUrl: '/modules/tweetsense/views/demographics_form.client.view.html',
+          controller: 'DemographicsController',
+          size: 'lg'
           
         });
     };
@@ -158,7 +190,7 @@ angular.module('tweetsense').controller('tsCtrl', ['$scope', '$modal',
 
         queue()
             .defer(d3.json, "/testdata/us.json")
-            .defer(d3.tsv, "/testdata/unemployment.tsv", function(d) { console.log(d); rateById.set(d.id, +d.rate); })
+            .defer(d3.tsv, "/testdata/unemployment.tsv", function(d) {  rateById.set(d.id, +d.rate); })
             .await(ready);
 
         function ready(error, us) {
@@ -181,7 +213,7 @@ angular.module('tweetsense').controller('tsCtrl', ['$scope', '$modal',
 	}
 ]).controller('tsTimeline', ['$scope',
     function($scope) {
-         //data
+
         var lanes = ["Chinese","Japanese","Korean"],
             laneLength = lanes.length,
             items = [{"lane": 0, "id": "Qin", "start": 5, "end": 205},
@@ -211,6 +243,7 @@ angular.module('tweetsense').controller('tsCtrl', ['$scope', '$modal',
             timeBegin = 0,
             timeEnd = 2000;
   
+
         var m = [20, 15, 15, 120], //top right bottom left
             w = 960 - m[1] - m[3],
             h = 500 - m[0] - m[2],
@@ -370,6 +403,10 @@ angular.module('tweetsense').controller('tsCtrl', ['$scope', '$modal',
             labels.exit().remove();
 
         }
+        
+    }
+]).controller('gmapsCtrl', ['$scope',
+    function($scope) {
         
     }
 ]);

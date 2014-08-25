@@ -1492,6 +1492,15 @@ fieldset[disabled] .btn-warning.active {
   max-height: 300px;
   overflow-y: auto;
 }
+
+.modal-content { 
+  color: white !important;
+  background-color: #293949;
+}
+
+.modal-lg { 
+  width: 80%;
+}
 /* ==========================================================================
    FlotChart
    ========================================================================== */

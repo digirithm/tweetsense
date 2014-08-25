@@ -3,7 +3,7 @@
     <header id="header">
         <!--logo start-->
         <div class="brand">
-            <a href="index.html" class="logo"><span>Tweet</span>Sense</a>
+            <a href="/#!/tweetsense" class="logo"><span>Tweet</span>Sense</a>
             <div class="small text-center">By Digirithm</div>
         </div>
         <!--logo end-->
@@ -26,8 +26,13 @@
                     <a href="/#!/tweetsense"><i class="fa fa-dashboard"></i><span>Dashboard</span></a>
                 </li>
                 <li>
-                    <a href="" ng-click="openDemographics()"><i class="fa fa-sitemap"></i><span>Demographics</span></a>
+                    <a href="" ng-click="openDemographics()"><i class="fa fa-sitemap"></i><span>View Demographics</span></a>
                 </li>
+                <li>
+                    <a href="" ng-click="openDemographicsForm()"><i class="fa fa-sitemap"></i><span>Add  Demographic</span></a>
+                </li>
+                
+                <!--
                 <li>
                     <a href="" ng-click="openPolls()"><i class="fa fa-question-circle"></i><span>Polls</span></a>
                 </li>
@@ -36,7 +41,7 @@
                 </li>
                 <li>
                     <a href="" ng-click="openSuggestions()"><i class="fa fa-info-circle"></i><span>Suggestions</span></a>
-                </li>
+                </li>-->
             </ul>
         </div>
 
@@ -50,7 +55,7 @@
                 <div class="col-md-3 col-sm-6">
                     <div class="dashboard-tile detail tile-red">
                         <div class="content">
-                            <h1 class="text-left timer" data-from="0" data-to="180" data-speed="2500"> </h1>
+                            <h1 class="text-left">{{ counts.tweets }} </h1>
                             <p>Tweets</p>
                         </div>
                         <div class="icon"><i class="fa fa-envelope"></i>
@@ -60,7 +65,7 @@
                 <div class="col-md-3 col-sm-6">
                     <div class="dashboard-tile detail tile-turquoise">
                         <div class="content">
-                            <h1 class="text-left timer" data-from="0" data-to="56" data-speed="2500"> </h1>
+                            <h1 class="text-left">{{ counts.demographics }} </h1>
                             <p>Demographics</p>
                         </div>
                         <div class="icon"><i class="fa fa-users"></i>
@@ -70,7 +75,7 @@
                 <div class="col-md-3 col-sm-6">
                     <div class="dashboard-tile detail tile-blue">
                         <div class="content">
-                            <h1 class="text-left timer" data-from="0" data-to="32" data-speed="2500"> </h1>
+                            <h1 class="text-left">{{ counts.polls }} </h1>
                             <p>Polls</p>
                         </div>
                         <div class="icon"><i class="fa fa fa-comments"></i>
@@ -80,7 +85,7 @@
                 <div class="col-md-3 col-sm-6">
                     <div class="dashboard-tile detail tile-purple">
                         <div class="content">
-                            <h1 class="text-left timer" data-to="105" data-speed="2500"> </h1>
+                            <h1 class="text-left timer">{{counts.trends}} </h1>
                             <p>Trends</p>
                         </div>
                         <div class="icon"><i class="fa fa-bar-chart-o"></i>
@@ -89,7 +94,8 @@
                 </div>
             </div>
             <!--tiles end-->
-            <!--dashboard charts and map start-->
+
+
             <div class="row">
                 <div class="col-md-12">
                     <div class="panel panel-default">

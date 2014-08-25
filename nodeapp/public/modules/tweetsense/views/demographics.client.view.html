@@ -1,13 +1,37 @@
 <section data-ng-controller="DemographicsController">
 	<div class="modal-header">
-            <h3 class="modal-title">Demographics</h3>
-        </div>
-        <div class="modal-body">
-            fooooooo
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-primary" ng-click="ok()">OK</button>
-            <button class="btn btn-primary" ng-click="cancel()">Cancel</button>
-        </div>
+        <h3 class="modal-title">Demographics</h3>
+    </div>
+    <div class="modal-body">
+        <table class="table">
+            <thead>
+                <th>&nbsp;</th>
+                <th>Name</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Location<th>
+                <th>Keywords</th>
+                <th>Followers</th>
+                <th>Friends</th>
+            </thead>
+            <tbody>
+                <tr ng-repeat="demographic in demographics">
+                    <td nowrap>
+                        <a href="" title="Questions"><span class="glyphicon glyphicon-question-sign"></span></a>
+                        <a href="" title="Polls"><span class="glyphicon glyphicon-signal"></span></a>
+                        <a href="" title="Suggestions"><span class="glyphicon glyphicon-comment"></span></a>
+                        <a href="" title="Trends"><span class="glyphicon glyphicon-fire"></span></a>
+                        <a href="" title="Delete"><span class="glyphicon glyphicon-trash"></span></a>
+                    </td>
+                    <td>{{demographic.name}} </td>
+                    <td>{{demographic.specs.age}} </td>
+                    <td>{{demographic.specs.gender}} </td>
+                    <td>{{demographic.specs.location}} </td>
+                    <td>{{demographic.specs.keywords}} </td>
+                    <td>{{demographic.specs.followers}} </td>
+                    <td>{{demographic.specs.friends}} </td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </section>

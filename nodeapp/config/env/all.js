@@ -16,9 +16,11 @@ module.exports = {
 				'public/lib/bootstrap/dist/css/bootstrap.css',
 				'public/lib/bootstrap/dist/css/bootstrap-theme.css',
 				'public/spacelabs/assets/css/font-awesome.min.css',
+				'public/lib/seiyria-bootstrap-slider/dist/css/bootstrap-slider.min.css'
 
 			],
 			js: [
+			'//maps.googleapis.com/maps/api/js?v=3.exp&libraries=visualization',
 			   	'public/spacelabs/assets/js/jquery-1.10.2.min.js',
        			'public/spacelabs/assets/plugins/countTo/jquery.countTo.js',
 				'public/lib/angular/angular.js',
@@ -30,10 +32,14 @@ module.exports = {
 				'public/lib/angular-ui-router/release/angular-ui-router.js',
 				'public/lib/angular-ui-utils/ui-utils.js',
 				'public/lib/angular-bootstrap/ui-bootstrap-tpls.js',
+				'public/lib/seiyria-bootstrap-slider/dist/bootstrap-slider.min.js',
 				 'public/lib/angular-socket-io/socket.js',
        			 'public/lib/socket.io-client/socket.io.js',
        			 'public/spacelabs/assets/js/modernizr-2.6.2.min.js',
-       			'public/spacelabs/assets/plugins/weather/js/skycons.js' 
+       			'public/spacelabs/assets/plugins/weather/js/skycons.js',
+       			
+       			'public/lib/lodash/dist/lodash.underscore.min.js',
+       			'public/lib/angular-google-maps/dist/angular-google-maps.min.js'
 				
 			]
 		},

@@ -21,6 +21,10 @@ angular.module('tweetsense').config(['$stateProvider',
 			url: '/tweetsense/demographics',
 			templateUrl: 'modules/tweetsense/views/demographics.client.view.html'
 		}).
+		state('demographics.form', {
+			url: '/tweetsense/demographics/form',
+			templateUrl: 'modules/tweetsense/views/demographics_form.client.view.html'
+		}).
 		state('main', {
 			url: '/tweetsense',
 			templateUrl: 'modules/tweetsense/views/main.client.view.html'

@@ -3,6 +3,41 @@ Tweet Sense -- Twitter interactive intelligence api
 
 TweetSense is fundamentally, the ultimate twitter intelligence experience. Browse twitter, create virtual focus groups, manipulate and experience the data, as trends and memes evolve. Welcome to TweetSense!
 
+NOTE: Demographics are fundametally sets, and accordingly, somewhere there just has to be a venn
+      diagram. While simplistic in conception, the implementation of demographics as sets allows
+      fine tuning of a sample population using set operations, so this functionality should be
+      represented somewhere in the front end.
+
+<pre>
+      >>> gamer_ girls = Specs(gender='female',
+      ...                      age=range(13,30), keywords=('nintendo', 'game', 'xbox', 'play'))
+      >>> nerds = Specs(gender=['male', 'female'],
+      ...               age=range(13,30), keywords=('star trek', 'larping', 'comic books'))
+      >>> gamer_girls_and_nerds = Demographic(specs=women) & Demographic(specs=nerds)
+
+      Any poll on gamer_girls_and_nerds will use the intersection of the gamer girls and the nerds.
+      Trend handling is very powerful, for instance, to poll this hybrid demographic for changes
+      in opinion regarding potentially engaging subject matter,
+
+      >>> question = Question(label='Do you like Big Bang Theory?',
+                              exemplars=[...scored training tweets...])
+      >>> is_popular = gamer_girls_and_nerds.poll(question=question,
+                                                  trend=Trend.common.emerging_meme, weighted=True)
+      >>> print(is_popular)
+      (agree=0.7918, trending=0.28)
+
+      The above result indicates that the majority of the demographic's members answer the question
+      in the affirmative, however, as the show has been around for many seasons, the model disagrees
+      with the assertion that the popularity of The Big Bang Theory is behaving with the characteristics
+      of an emerging meme.
+</pre>
+
+NOTE: Spotlight and Discovery functionality are the two "killer features" and accordingly will take
+      the longest to complete. One of the problems in machine learning is having one giant data set
+      and two or more fundamental operations that are incompatibly amenable to different data structures.
+      The idea is to provide a user experience so intuitive it will offset the surpise factor of
+      deep insights.
+
 Workflow:
 
 First build a training corpus,

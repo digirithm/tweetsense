@@ -1,63 +1,7 @@
 """
 Tweet Sense -- Twitter interactive intelligence api
 
-Building a training corpus:
-1) Form a representative "demographic".
-2) Download and index their tweets
-
->>> female_gamers = Specs(gender=['female'], age=range(13,30), keywords=['nintendo', 'game', 'xbox', 'play'])
->>> demographic = Demographic('gamer chicks', specs=female_gamers)
->>> demographic.sync()
-
-Alternatively, you can directly specify a group of users as the target demographic,
-
->>> big_guys_with_tiny_dogs = map(User, ('arnoldS_69', 'DanielTosh', 'christina_aguilera'))
->>> demographic = Demographic('men with ridiculous dogs', users=big_guys_with_tiny_dogs)
->>> demographic.sync()
-
-Creating a question:
-3) Label the question
-4) Supply a training set of real or hypothetical tweets that answers the
-   question (1 means yes, 0 means no)
-
->>> label = "Is xbox more popular than nintendo?"
->>> training_tweets = (('xbox rocks', 1), ('nintendo is better than xbox', 0),
-                       ('xbox is way cooler', 1), ('I love mario cart more than halo.', 0))
->>> question = Question(label, training_tweets)
-
-Poll a focus group:
-5) Ask the question, using any modifiers
-
->>> poll = demographic.poll(question)
-
-Modifiers may be used to do trend analysis,
-
->>> trend = Trend(t_start='3/12/2014', near=('atlanta', 'north carolina', '123 Maple Lane, North Pole'))
->>> poll = demographic.poll(question, qualifiers=trend)
-
-NOTE: Demographics are fundametally sets, and accordingly, somewhere there just has to be a venn
-      diagram. While simplistic in conception, the implementation of demographics as sets allows
-      fine tuning of a sample population using set operations, so this functionality should be
-      represented somewhere in the front end.
-
-NOTE: Since we are a data science company, lets do some freaking data science! Suggestions will be
-      one of the most powerful features because it gives us access to who is trying to learn what
-      about whom. My mental image is of how google suggests search completions as you type.
-
-NOTE: I need input from you guys about what you think a "trend" should be. Think in terms of feature
-      recognition, because I want to be able to predict trend emergence by appling time series pattern
-      matching on well defined, quantifiable features of trends.
-
-NOTE: Spotlight and Discovery functionality are the two "killer features" and accordingly will take
-      the longest to complete. One of the problems in machine learning is having one giant data set
-      and two or more fundamental operations that are incompatibly amenable to different data structures.
-      The idea is to provide a user experience so intuitive it will offset the surpise factor of
-      deep insights.
-
 TODO: In no particular order,
-
-      Exception handling - backend exceptions should provide detailed json responses that ease client
-      side debugging and introspection.
 
       Trend creation and manipulation.
 
@@ -66,36 +10,162 @@ TODO: In no particular order,
       Boosting functionality (crowd sources ML logic to a bunch of specialized weak learners to
       increase accuracy without overfitting).
 
-      Backend data store handling needs improvement.
-
-      Docker integration.
-
       Spotlight and Discovery.
 
       Visualization aids, data cleaning, pipelining.
 """
+# sanity check
+import sys
+assert not sys.version.startswith('2'), 'Compatible with only python >= 3.*'
 
-from collections import namedtuple
+# main imports
 import random
-from pymongo import MongoClient
 import asyncio
-from TextBlob import TextBlob
-from TextBlob.classifiers import NaiveBayesClassifier
+import functools
+from collections import namedtuple, Hashable, Sequence
+import requests
+from pymongo import MongoClient
+from bson import ObjectId
+from textblob import TextBlob
+from textblob.classifiers import NaiveBayesClassifier
 
-# temporary wrappers
-Tweet = namedtuple('content t_created retweets geo')
-Specs = namedtuple('age gender location keywords n_followers n_friends')
+# temporary wrapper
+Specs = namedtuple('Specifications', 'age gender location keywords n_followers n_friends')
 
-# Twitter API V-1.1 URLs
-GET_TWEET_URL = '...'
+# Twitter API V-1.1 URLs, count set to max
+GET_USER_TWEETS_URL = 'https://api.twitter.com/1.1/statuses/user_timeline.json?screen_name=%s&count=3200'
+GET_USER_FRIENDS_URL = 'https://api.twitter.com/1.1/friends/ids.json?cursor=-1&screen_name=%s&count=5000'
+GET_USER_FOLLOWERS_URL = 'https://api.twitter.com/1.1/followers/ids.json?cursor=-1&screen_name=%s&count=5000'
+
+# various constants...
+TWITTER_API_LIMIT = None
 
 # event loop for pulling in tweets and persisting them server side
-DL_LOOP = asyncio.BaseEventLoop()  # download tweets
-DB_LOOP = asyncio.BaseEventLoop()  # persist in data store
+DL_LOOP = asyncio.get_event_loop()  # download tweets
+DB_LOOP = asyncio.get_event_loop()  # persist in data store
 
-# handles mongo connection
-MONGO = MongoClient()
+# handles mongo connections
+MONGO_CLIENT = MongoClient()
+DATA_STORAGE = MONGO_CLIENT['data']
+USER_STORAGE = MONGO_CLIENT['user']
 
+
+class InheritanceException(Exception):
+    pass
+
+
+class StorageException(Exception):
+    pass
+
+
+class EnforceHashableMeta(type):
+    """
+    Ensures the base class is hashable.
+    """
+    def __new__(meta, name, bases, attrs):
+        if len(bases) and not all(isinstance(b, Hashable) for b in bases):
+            raise InheritanceException('Can only use Persitable with hashable types')
+        # intentionally not using `super`
+        return type.__new__(meta, name, bases, attrs)
+
+
+class Persistable(metaclass=EnforceHashableMeta):
+    """
+    Is a mixin that allows hashing, classification, and mongo persistance to be performed
+    using the same subtype across multiple APIs (in other words, gets rid of about 10K lines
+    of code) and is more lightweight than a traditional ORM solution.
+
+    It is imperative to only use this mixin with hashable types!
+    """
+    storage = None
+
+    @property
+    def _id(self):
+        return ObjectId(hash(self))
+
+    def dehydrate(self):
+        """
+        Creates a serializable dictionary from the object. Override in a subclass.
+        """
+        raise NotImplementedError(self.__doc__)
+
+    @classmethod
+    def hydrate(cls, data, from_string=False):
+        """
+        Takes a dictionary and recreates the object from the class. If `from_string`
+        is set to True, you may pass in raw json as the data. Override in a subclass.
+        """
+        raise NotImplementedError(self.__doc__)
+
+    @asyncio.coroutine
+    def _async_save(self):
+        """
+        py 3.* only, in 2.* series this would have to be done with gevent
+        """
+        if not hasattr(self.storage) or self.storage is None:
+            raise StorageException('Data store has not been set on this class')
+
+        future = asyncio.Future()
+
+        def dump():
+            data = self.dehydrate()
+            # force upserts for simplicity
+            saved = self.storage.update({'_id': self._id}, data, upsert=True)
+            future.set_result(saved)
+            # up-delegate flow control
+            yield from asyncio.sleep(0)
+
+        DB_LOOP.run_forever(dump)
+        return future.result
+
+    @classmethod
+    def load_object(cls, _id=None):
+        """
+        A blank _id retrieves all documents in a particular collection
+        """
+        if _id:
+            hsh = _id if isinstance(_id, ObjectId) else ObjectId(_id)
+            return cls.hydrate(cls.storage.find_one({'_id': hsh}))
+        else:
+            # rehydrate an entire collection of documents
+            return [cls.hydrate(x) for x in cls.storage.find()]
+
+    def save(self):
+        return self._async_save()
+
+    @classmethod
+    def save_objects(cls, obj):
+        return obj.save() if not \
+               isinstance(obj, Sequence) else [x.save() for x in obj]
+
+    # For asynchronously accessing the multiprocessing API via `pickle`
+
+    def __setstate__(self, state):
+        return self.hydrate(state)
+
+    def __getstate__(self):
+        return self._async_save()
+
+    # End multiprocessing
+
+
+def set_storage(db=None, name=None):
+    def _wrap_cls(cls):
+        cls.storage = db[name]
+        def _object_factory(*args, **kwargs):
+            return cls(*args, **kwargs)
+        return _object_factory
+    return _wrap_cls
+
+
+def rate_limit(calls_per_window=3200, window=TWITTER_API_LIMIT):
+    def _wrap(F):
+        @functools.lru_cache
+        def _call(*args, **kwargs):
+            return F(*args, **kwargs)
+        return _call
+    return _wrap
+    
 
 # Spotlight and Discovery functionality are under construction. The idea is to address
 # the search/retrieval dilemma through a common framework, while maximizing insight
@@ -107,66 +177,119 @@ MONGO = MongoClient()
 # This was great when you wanted to discover something but didn't know what to search for,
 # especially before boolean filters were permitted or query prompting. To learn about light
 # trucks, you would navigate categories>automotive>trucks>light-trucks and you would find
-# all sorts of information about light trucks. The problem with this approach is that
+# all sorts of information about light trucks. The problem with this approach is that...etc
+# ...TODO FINISH EXPLANATION
 
 
-class Spotlight:
+class Spotlight(Persistable):
     pass
 
 
-class Discovery:
+class Discovery(Persistable):
     pass
 
 
-class TwitterUser(int):
-    db_prefix = 'twitter_user'
-    db = MONGO[db_prefix]
+# Core functionality ...
+
+
+def _attach_ObjectId(X):
+    """
+    Prepares a tweet for persistance
+    """
+    X['_id'] = ObjectId(hash(X['screen_name']))
+    return X
+
+
+@set_storage(db=DATA_STORAGE, name='twitter_user')
+class TwitterUser(int, Persistable):
+    """
+    Rough approximation of a twitter user whose tweets can be persisted or
+    used as a classifier.
+    """
 
     def __new__(cls, handle):
-        instance = super().__new__(hash(handle))
+        instance = int.__new__(cls, hash(handle))
         instance.handle = handle
+        # attach friends
+        response, content = requests.get(GET_USER_FRIENDS_URL % handle)
+        if response.status_code == 200:
+            instance.friends = content.json['ids']
+        # attach followers
+        response, content = requests.get(GET_USER_FOLLOWERS_URL % handle)
+        if response.status_code == 200:
+            instance.followers = content.json['ids']
+        # init the cache
+        instance._tweet_cache = None
         return instance
 
-    def to_json(self):
-        pass
+    @rate_limit(calls_per_window=10, window=TWITTER_API_LIMIT)
+    def download_tweets(self, **filters):
+        future = asyncio.Future()
 
-    def dump(self):
-        self.db.insert(self.to_json())
+        @asyncio.coroutine
+        def do_get():
+            response, content = requests.get(GET_USER_TWEETS_URL % self.handle)
+            future.set_result((response, content))
+            # up-delegate flow control
+            yield from asyncio.sleep(0)
 
-    @asyncio.coroutine
-    def _save(self):
-        asyncio.Task(self.dump, self.db, loop=DB_LOOP)
+        DL_LOOP.run_forever(do_get)
+        r, c = future.result
+        if r.status_code == 200:
+            self._tweet_cache = tweets = c.json
+            # force upsert
+            self.storage.update((_attach_ObjectId(t) for t in tweets), upsert=True)
 
-    @asyncio.coroutine
-    def tweets(self, **filters):
-        response, content = request.get(GET_TWEET_URL % self.handle, parameters=filters)
-        yield from iter((content,))
+    @property
+    def tweets(self):
+        if not self._tweet_cache:
+            self.download_tweets()
+            return self.tweets
+        else:
+            return self._tweet_cache
 
-    def load_tweets(self):
-        pass
+    def update_cache(self):
+        self._tweet_cache = self.storage.find({'_id': ObjectId(hash(self.handle))})
 
-    def __setstate__(self, state):
-        pass
-
-    def __getstate__(self):
-        self.db.insert({'label': label, 'exemplars': exemplars})
+    def clear_cache(self):
+        self._tweet_cache = None
 
 
-
-class Demographic(frozenset):
+@set_storage(db=USER_STORAGE, name='demographic')
+class Demographic(frozenset, Persistable):
     """
-    spec = Specs(gender='female', age=range(13,30), keywords=('nintendo', 'game', 'xbox', 'play'))
-    demo = Demographic('gamer_chicks', specs=spec)
+    Demographics are fundamentally sets,
+
+    >>> gamer_ girls = Specs(gender='female',
+    ...                      age=range(13,30), keywords=('nintendo', 'game', 'xbox', 'play'))
+    >>> nerds = Specs(gender=['male', 'female'],
+    ...               age=range(13,30), keywords=('star trek', 'larping', 'comic books'))
+    >>> gamer_girls_and_nerds = Demographic(specs=women) & Demographic(specs=nerds)
+
+    Any poll on gamer_girls_and_nerds will use the intersection of the gamer girls and nerds.
+    Trend handling is very powerful, for instance, to poll this hybrid demographic for changes
+    in opinion regarding potentially engaging subject matter,
+
+    >>> question = Question(label='Do you like Big Bang Theory?',
+                            exemplars=[...scored training tweets...])
+    >>> is_popular = gamer_girls_and_nerds.poll(question=question,
+                                                trend=Trend.common.emerging_meme, weighted=True)
+    >>> print(is_popular)
+    (agree=0.7918, trending=0.28)
+
+    The above result indicates that the majority of the demographic's members answer the question
+    in the affirmative, however, as the show has been around for many seasons, the model disagrees
+    with the assumption that the popularity of The Big Bang Theory is behaving with the characteristics
+    of an emerging meme.
     """
-    db_prefix = 'demographic'
-    db = MONGO[db_prefix]
 
     def __new__(cls, name, specs=None, users=None):
-        instance = super().__new__(cls.build_from_specification(specs) if specs else users)
+        instance = frozenset.__new__(cls,
+                        cls.build_from_specification(specs) if specs else users)
         instance.name = name
         return instance
 
-    def poll(self, question, qualifiers=None, weighted=False):
+    def poll(self, question, trend=None, weighted=False):
         """
         Uses the demographic as a focus group to answer a yes or no question.
         The return value sits inside the interval between 0 and 1, where 0 is
@@ -176,144 +299,109 @@ class Demographic(frozenset):
         N = float(len(self))
         # `ask` does the polling
         if not weighted:
-            ask = lambda user: question(user, qualifiers)
+            ask = lambda user: question(user, trend)
         else:
             # if weighted flaq is set, then weight the vote by the number of followers,
             # making the assumption that the more followers, the more influential a user.
             normalizing_constant = float(sum(len(user.followers) for user in self))
-            ask = lambda user: question(user, qualifiers) * len(user.followers) / normalizing_constant
+            ask = lambda user: question(user, trend) * len(user.followers) / normalizing_constant
         # calculate the average
-        return sum(ask(user) for user in self) / N
+        result = sum(ask(user) for user in self) / N
+        return Poll(question=question, trend=trend, result=result)
 
     def sync(self):
         """
         Updates the backend asynchronously
         """
         for user in self:
-            get_tweets = asyncio.Task(user.tweets, loop=DL_LOOP)
-            save_to_db = asyncio.Task(user.dump, self.db, loop=DB_LOOP)
-            DL_LOOP.run_until_complete(get_tweets)
-            DB_LOOP.run_until_complete(save_to_db)
+            user.download_tweets()
 
     def build_from_specification(self, specs):
         """
         Search twitter for users matching the specifications.
-
-        Under construction.
         """
         pass
 
     def sample(self, N=100):
         """
-        Return a sample of the demographic with respect to a gaussian distribution.
+        Return a sample of the demographic with respect to a gaussian (i.e. normal) distribution.
         """
-        return random.sample(self, N)
+        return self.__class__(users=random.sample(self, N))
+
+    @classmethod
+    def sample_demographic(cls, demo, N=100):
+        return demo.sample(N)
 
     def broaden(self):
-        """
-        Mutates the demographic in place.
-        """
-        expanded = self.broaden_demographic(self)
-        self.update(expanded)
+        cls = self.__class__
+        new = self | cls.broaden_demographic(self)
+        return cls(self.name, new)
 
     @classmethod
     def broaden_demographic(cls, demo):
         """
-        Grows the membership of a demographic by including the friends and followers.
+        Grows the membership of a demographic by collecting the friends and followers.
+        Prefixes name with a temporary `_` to indicate that we are simulating the
+        "update" of an overriden immutable type.
         """
-        new = cls(demo.name,
-                  users=(set(user.friends) | set(user.followers) for user in demo))
-        new.update(demo)
-        return new
-
-    def to_json(self):
-        pass
-
-    def dump(self):
-        pass
-
-    @asyncio.coroutine
-    def _save(self):
-        asyncio.Task(self.dump, self.db, loop=DB_LOOP)
-
-    def __setstate__(self, state):
-        pass
-
-    def __getstate__(self):
-        state = {'_id': self}
-        self.db.insert(state)
-        return state
+        return cls('_' + demo.name,
+                   users=(frozenset(user.friends) | frozenset(user.followers) for user in demo))
 
 
+class Poll(int, Persistable):
+    pass
 
-class Classifier(int):
+
+# Under Construction, Trends/Suggestions
+
+
+class Trend(int, Persistable):
+    pass
+
+
+class Suggestion(int, Persistable):
+    pass
+
+
+# Machine Learning facade
+
+
+def not_implemented(*args, **kwargs):
+    raise NotImplementedError
+
+
+class EnforceCallableHashedTypeMeta(EnforceHashableMeta):
     """
-    Wrapper class for integer labeled classifiers, for use in TextBlob or scikit-learn
+    Ensures all hasbable subtypes are callable.
     """
-    db_prefix = 'classifier'
-    db = MONGO[db_prefix]
+    def __new__(meta, name, bases, attrs):
+        if len(bases) and not ('__call__' in attrs):
+            raise InheritanceException('Subtypes must declare themselves callable')
+        # intentionally not using `super`
+        return EnforceHashableMeta.__new__(meta, name, bases, attrs)
 
-    def __new__(cls, label, exemplars, cls=None):
-        instance = super().__new__(hash(label))
+
+class Classifier(int, Persistable, metaclass=EnforceCallableHashedTypeMeta):
+    """
+    Wrapper class for integer labeled classifiers, for use in TextBlob or scikit-learn.
+    Use NaiveBayes as the default because it gives the best results for our current setup.
+    """
+
+    def __new__(cls, label, exemplars, classifier_type=None):
+        instance = int.__new__(cls, hash(label))
         instance.label = label
-        instance.logic = (cls or NaiveBayesClassifier)(exemplars)
+        instance.logic = (classifier_type or NaiveBayesClassifier)(exemplars)
         return instance
 
-    @staticmethod
-    def not_implemented(*args, **kwargs):
-        raise NotImplementedError
-
-    __call__ = __add__ = __sub__ = __mul__ = __div__ = not_implemented
+    # don't do anything mathy with the classifiers to be on the safe side
+    __add__ = __sub__ = __mul__ = __div__ = __call__ = not_implemented
 
     def analyze(self, *args, **kwargs):
+        # downward delegation
         return self.logic(*args, **kwargs)
 
-    def to_json(self):
-        pass
 
-    def dump(self):
-        pass
-    @asyncio.coroutine
-    def _save(self):
-        asyncio.Task(self.dump, self.db, loop=DB_LOOP)
-
-    def __setstate__(self, state):
-        pass
-
-    def __getstate__(self):
-        state = {'_id': self, 'label': label, 'exemplars': exemplars}
-        self.db.insert(state)
-        return state
-
-
+@set_storage(db=USER_STORAGE, name='question')
 class Question(Classifier):
-    db_prefix = 'question'
-    db = MONGO[db_prefix]
-
-    def __call__(self, user, qualifiers=None):
-        return self.analyze(user.load_tweets())
-
-    def to_json(self):
-        pass
-
-    def dump(self):
-        pass
-
-    @asyncio.coroutine
-    def _save(self):
-        asyncio.Task(self.dump, self.db, loop=DB_LOOP)
-
-    def __setstate__(self, state):
-        pass
-
-    def __getstate__(self):
-        self.db.insert({'label': label, 'exemplars': exemplars})
-
-
-
-class Trend:
-    pass
-
-
-class Suggestion:
-    pass
+    def __call__(self, user, trend=None):
+        return self.analyze(user.tweets)
